@@ -1,3 +1,8 @@
+#!/bin/bash
+echo "$0 $@"
+. ./cmd.sh
+[ -f path.sh ] && . ./path.sh
+
 #########################################################################################
 # Let's build universal-context bottleneck network
 # - Universal context MLP is a hierarchy of two bottleneck neural networks
@@ -8,10 +13,10 @@
 # - This structure produces superior performance w.r.t. single bottleneck network
 #
 # Train SBN
-stage=1
+stage=2
 gmmdir=/mnt/jyhou/kaldi/egs/swbd/s5c/exp/tri4
 lang=data/lang
-train="train_nodup"
+train="swbd_xy_train_nodup_200"
 
 batch_size=2048
 learn_rate=0.001
@@ -20,8 +25,8 @@ scheduler_opts="\"--momentum $momentum\""
 train_tool_opts="--minibatch-size=${batch_size} --randomizer-size=32768 --randomizer-seed=777"
 
 if [ $stage -le 1 ]; then
-    alidir="exp/{nn_ali_xiaoying_train,tri4_ali_swbd_train_nodup}"
-    lables_pdf="ali-pdf.ark"
+    alidir="exp/{tri4_ali_swbd_train_nodup,nn_xiaoying_read_after_me_train1_ali_gpu,nn_xiaoying_pronunciation_challenge_ali}"
+    lables_pdf="ali-pdf-all.ark"
     ali-to-pdf exp/tri4_ali_swbd_train_nodup/final.mdl "ark:gunzip -c $alidir/ali.*.gz |" ark:$lables_pdf
 fi
 
@@ -29,7 +34,7 @@ if [ $stage -le 2 ]; then
   # Train 1st network, overall context +/-5 frames
   # - the topology is 90_1500_1500_80_1500_NSTATES, linear bottleneck,
   dir=exp/${train}-nnet5uc-part1
-  labels="\"ark:ali-to-post ark:ali-pdf.ark ark:- |\""
+  labels="\"ark:ali-to-post ark:ali-pdf-all.ark ark:- |\""
   ali="exp/tri4_ali_swbd_train_nodup"
   $cuda_cmd $dir/log/train_nnet.log \
     steps/nnet/train.sh --hid-layers 2 --hid-dim 1500 --bn-dim 80 \
@@ -38,7 +43,7 @@ if [ $stage -le 2 ]; then
       --cmvn-opts "--norm-means=true --norm-vars=false" \
       --feat-type traps --splice 5 --traps-dct-basis 6 --learn-rate $learn_rate \
       --labels $labels \
-      data-fbank/${train}_tr90 data-fbank/${train}_cv10 $lang $ali $ali $dir
+      fbank/${train}_tr90 fbank/${train}_cv10 $lang $ali $ali $dir
 fi
 
 if [ $stage -le 3 ]; then
@@ -57,7 +62,7 @@ if [ $stage -le 3 ]; then
   # - the topology will be 1040_1500_1500_30_1500_NSTATES, linear bottleneck,
   # - cmvn_opts get imported inside 'train.sh',
   dir=exp/${train}-nnet5uc-part2
-  labels="\"ark:ali-to-post ark:ali-pdf.ark ark:- |\""
+  labels="\"ark:ali-to-post ark:ali-pdf-all.ark ark:- |\""
   ali="exp/tri4_ali_swbd_train_nodup"
   $cuda_cmd $dir/log/train_nnet.log \
     steps/nnet/train.sh --hid-layers 2 --hid-dim 1500 --bn-dim 30 \
@@ -65,5 +70,5 @@ if [ $stage -le 3 ]; then
       --copy-feats false --train-tool-opts "$train_tool_opts" \
       --feature-transform $feature_transform --learn-rate $learn_rate \
       --labels $labels \
-    data-fbank/${train}_tr90 data-fbank/${train}_cv10 $lang $ali $ali $dir 
+    fbank/${train}_tr90 fbank/${train}_cv10 $lang $ali $ali $dir 
 fi
