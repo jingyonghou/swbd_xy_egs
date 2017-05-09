@@ -9,10 +9,18 @@
 # For python and bash script
 !*.py
 !*.sh
-
+!*.pl
+!*.txt
+!*.patch
 # Some generic scripts
 !/local
 
+#config file
+!/conf
+!*.conf
+!*.config
+
+# some
 # our code: python and bash
 
 # our code: C++

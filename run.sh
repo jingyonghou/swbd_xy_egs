@@ -3,7 +3,7 @@ echo "$0 $@"
 . ./cmd.sh
 [ -f path.sh ] && . ./path.sh
 
-stage=8
+stage=10
 # prepare xiaoying native data
 # here we split the the data into 2 set, test and train1 according to the text of this data
 # last 500 setences are used to extract keywords and first 618 sentence are used for training
@@ -41,7 +41,7 @@ if [ $stage -le 4 ]; then
     bash local/prepare_xiaoying_pronunciation_challenge.sh
 fi
 
-if [ $stage -le 8 ]; then
+if [ $stage -le 5 ]; then
     local/swbd1_data_download.sh /mnt/jyhou/data/swbd1
     # local/swbd1_data_download.sh /mnt/matylda2/data/SWITCHBOARD_1R2 # BUT,
 
@@ -95,7 +95,7 @@ if [ $stage -le 8 ]; then
     utils/data/remove_dup_utts.sh 200 fbank/train_100k fbank/train_100k_nodup  # 110hr
 
     # Finally, the full training set:
-    utils/data/remove_dup_utts.sh 300 data-fbank/train_nodev data-fbank/train_nodup  # 286hr
+    utils/data/remove_dup_utts.sh 300 fbank/train_nodev fbank/train_nodup  # 286hr
   
 fi
 
@@ -160,13 +160,14 @@ if [ $stage -le 9 ]; then
         utils/data/remove_dup_utts.sh 100 fbank/$dir fbank/${dir}_nodup_100
     done
     
-    local/merge_data.sh fbank/xiaoying_train1_nodup_200 fbank/xiaoying_train2_nodup_200 fbank/xiaoying_train_nodup_200
-    local/merge_data.sh fbank/xiaoying_train1_nodup_100 fbank/xiaoying_train2_nodup_100 fbank/xiaoying_train_nodup_100
     
-    for dir in train_nodup xiaoying_train_nodup_200 xiaoying_train_nodup_100;
+    for dir in train_nodup xiaoying_train1_nodup_200 xiaoying_train1_nodup_100 xiaoying_train2_nodup_200 xiaoying_train2_nodup_100;
     do
         utils/subset_data_dir_tr_cv.sh fbank/$dir fbank/${dir}_tr90 fbank/${dir}_cv10
     done
+    
+    local/merge_data.sh fbank/xiaoying_train1_nodup_200_tr90 fbank/xiaoying_train2_nodup_200_tr90 fbank/xiaoying_train_nodup_200_tr90
+    local/merge_data.sh fbank/xiaoying_train1_nodup_100_cv10 fbank/xiaoying_train2_nodup_100_cv10 fbank/xiaoying_train_nodup_100_cv10
     
     local/merge_data.sh fbank/train_nodup_tr90 fbank/xiaoying_train_nodup_100_tr90 fbank/swbd_xy_train_nodup_100_tr90
     local/merge_data.sh fbank/train_nodup_tr90 fbank/xiaoying_train_nodup_200_tr90 fbank/swbd_xy_train_nodup_200_tr90
