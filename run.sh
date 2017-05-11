@@ -3,7 +3,7 @@ echo "$0 $@"
 . ./cmd.sh
 [ -f path.sh ] && . ./path.sh
 
-stage=10
+stage=11
 # prepare xiaoying native data
 # here we split the the data into 2 set, test and train1 according to the text of this data
 # last 500 setences are used to extract keywords and first 618 sentence are used for training
@@ -176,13 +176,26 @@ if [ $stage -le 9 ]; then
     local/merge_data.sh fbank/train_nodup_cv10 fbank/xiaoying_train_nodup_200_cv10 fbank/swbd_xy_train_nodup_200_cv10
 fi
 # extract keywords' instances from xiaoying native speaker data
-if [ $stage -le 0 ]; then
+if [ $stage -le 10 ]; then
     local/prepare_keywords_instances.sh
 fi
 
 # prepare STD test set from read_after_me_test set 
-if [ $stage -le 0 ]; then
-    echo "hou"
+if [ $stage -le 11 ]; then
+    echo "prepare STD test set from read_after_me_test set"
+    word_score_dict_file=data/info/word_score_read_after_me_all.pkl
+    keywords_list=data/info/keywords.list
+    test_scp=data/read_after_me_test/wav.scp
+    text_tail_500=/mnt/jyhou/workspace/my_code/Prepare_windows_data/xiaoying_native/text_fixed_tail_500
+    mkdir -p data/local/data_15_30
+    python local/get_search_dataset.py $word_score_dict_file $keywords_list $test_scp $text_tail_500 \
+            15 30 10 40 2 data/local/data_15_30/utter.id
+    mkdir -p data/local/data_40_55
+    python local/get_search_dataset.py $word_score_dict_file $keywords_list $test_scp $text_tail_500 \
+            40 55 30 65 2 data/local/data_40_55/utter.id
+    mkdir -p data/local/data_65_80
+    python local/get_search_dataset.py $word_score_dict_file $keywords_list $test_scp $text_tail_500 \
+            65 80 55 100 2 data/local/data_65_80/utter.id
 fi
 
 
