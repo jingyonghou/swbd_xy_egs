@@ -18,9 +18,9 @@ gmmdir=/mnt/jyhou/kaldi/egs/swbd/s5c/exp/tri4
 lang=data/lang
 train="xiaoying_train_nodup_200"
 
-batch_size=2048
-learn_rate=0.001
-momentum=0
+batch_size=4096
+learn_rate=0.0005
+momentum=0.9
 scheduler_opts="\"--momentum $momentum\""
 train_tool_opts="--minibatch-size=${batch_size} --randomizer-size=32768 --randomizer-seed=777"
 

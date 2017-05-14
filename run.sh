@@ -3,7 +3,7 @@ echo "$0 $@"
 . ./cmd.sh
 [ -f path.sh ] && . ./path.sh
 
-stage=11
+stage=13
 # prepare xiaoying native data
 # here we split the the data into 2 set, test and train1 according to the text of this data
 # last 500 setences are used to extract keywords and first 618 sentence are used for training
@@ -21,7 +21,7 @@ if [ $stage -le 2 ]; then
     bash local/extract_keyword_syllabel.sh
 fi
 
-# prepare xiaoying's read afterme data and 
+# prepare xiaoying's read afterme data and split it by text 
 if [ $stage -le 3 ]; then
     bash local/prepare_xiaoying_read_afterme.sh
 
@@ -34,11 +34,40 @@ if [ $stage -le 3 ]; then
     python local/subset_data_dir.py data/xiaoying_train1.list data/read_after_me_all/ data/read_after_me_train1/
     utils/utt2spk_to_spk2utt.pl data/read_after_me_train1/utt2spk > data/read_after_me_train1/spk2utt
     utils/fix_data_dir.sh data/read_after_me_train1
+
+
 fi
 
 # prepare xiaoying's read afterme data and 
 if [ $stage -le 4 ]; then
     bash local/prepare_xiaoying_pronunciation_challenge.sh
+fi
+
+#split the xiaoying's data by speaker 
+if [ $stage -le 4 ]; then
+    python local/get_read_afterme_speaker.py /mnt/jyhou/data/userTextAudio/json.list data/read_after_me_train1/wav.scp data/info/read_afterme_train_speaker.list
+    python local/get_read_afterme_speaker.py /mnt/jyhou/data/userTextAudio/json.list data/read_after_me_test/wav.scp data/info/read_afterme_test_speaker.list
+    python local/get_pronunciation_challenge_speaker.py data/pronunciation_challenge/wav.scp data/info/pronunciation_challenge_train_speaker.list
+
+    cat data/info/read_afterme_train_speaker.list data/info/read_afterme_test_speaker.list |sort|uniq >  data/info/read_afterme_all_speaker.list
+    python local/shuffle_list.py data/info/read_afterme_all_speaker.list data/info/read_afterme_all_speaker_shuffled.list
+    head -n 4000 data/info/read_afterme_all_speaker_shuffled.list > data/info/speaker_train1.list
+    tail -n 4198 data/info/read_afterme_all_speaker_shuffled.list > data/info/speaker_test.list
+
+    cat data/info/speaker_train1.list data/info/pronunciation_challenge_train_speaker.list > data/info/speaker_train_all.list 
+    # this still contains little part of test speaker because some pronunciation challenge data may contains the test speaker
+    python local/exclude_list.py data/info/speaker_test.list data/info/speaker_train_all.list data/info/speaker_train.list
+
+    python local/exclude_list_by_speaker.py /mnt/jyhou/data/userTextAudio/json.list data/info/speaker_train.list data/read_after_me_test/wav.scp data/info/read_afterme_test_remain.scp
+
+    python local/exclude_list_by_speaker.py /mnt/jyhou/data/userTextAudio/json.list data/info/speaker_test.list data/read_after_me_train1/wav.scp data/info/read_afterme_train1_remain.scp
+    
+    python local/exclude_list_by_speaker_pronunciation.py data/info/speaker_test.list data/pronunciation_challenge/wav.scp data/info/pronunciation_challenge_remain.scp
+    
+    utils/subset_data_dir.sh --utt-list data/info/read_afterme_test_remain.scp data/read_after_me_test data/read_after_me_test_remain
+    utils/subset_data_dir.sh --utt-list data/info/read_afterme_train1_remain.scp data/read_after_me_train1 data/read_after_me_train1_remain
+    utils/subset_data_dir.sh --utt-list data/info/pronunciation_challenge_remain.scp data/pronunciation_challenge data/pronunciation_challenge_remain
+    
 fi
 
 if [ $stage -le 5 ]; then
@@ -101,7 +130,7 @@ fi
 
 # extract fbank feature
 if [ $stage -le 6 ]; then
-    for x in read_after_me_test read_after_me_train1 pronunciation_challenge;
+    for x in read_after_me_test_remain read_after_me_train1_remain pronunciation_challenge_remain;
     do
         data_src=data/$x
         data_fbank=fbank/$x
@@ -134,15 +163,15 @@ if [ $stage -le 7 ]; then
 fi
 
 if [ $stage -le 8 ]; then
-    for x in read_after_me_train1 pronunciation_challenge;
+    for x in read_after_me_train1_remain pronunciation_challenge_remain;
     do
         source_fbank=fbank/${x}
-        if [ $x = "read_after_me_train1" ]; then
+        if [ $x = "read_after_me_train1_remain" ]; then
             word_score_pkl=data/info/word_score_read_after_me_all.pkl
             target_fbank=fbank/xiaoying_train1
         fi
 
-        if [ $x = "pronunciation_challenge" ]; then
+        if [ $x = "pronunciation_challenge_remain" ]; then
             word_score_pkl=data/info/word_score_pronunciation_challenge.pkl
             target_fbank=fbank/xiaoying_train2
         fi 
@@ -167,6 +196,9 @@ if [ $stage -le 9 ]; then
     done
     
     local/merge_data.sh fbank/xiaoying_train1_nodup_200_tr90 fbank/xiaoying_train2_nodup_200_tr90 fbank/xiaoying_train_nodup_200_tr90
+    local/merge_data.sh fbank/xiaoying_train1_nodup_200_cv10 fbank/xiaoying_train2_nodup_200_cv10 fbank/xiaoying_train_nodup_200_cv10
+    
+    local/merge_data.sh fbank/xiaoying_train1_nodup_100_tr90 fbank/xiaoying_train2_nodup_100_tr90 fbank/xiaoying_train_nodup_100_tr90
     local/merge_data.sh fbank/xiaoying_train1_nodup_100_cv10 fbank/xiaoying_train2_nodup_100_cv10 fbank/xiaoying_train_nodup_100_cv10
     
     local/merge_data.sh fbank/train_nodup_tr90 fbank/xiaoying_train_nodup_100_tr90 fbank/swbd_xy_train_nodup_100_tr90
@@ -175,6 +207,15 @@ if [ $stage -le 9 ]; then
     local/merge_data.sh fbank/train_nodup_cv10 fbank/xiaoying_train_nodup_100_cv10 fbank/swbd_xy_train_nodup_100_cv10
     local/merge_data.sh fbank/train_nodup_cv10 fbank/xiaoying_train_nodup_200_cv10 fbank/swbd_xy_train_nodup_200_cv10
 fi
+
+if [ $stage -le 0 ]; then
+    bash local/run_train_sbnf.sh
+fi
+
+if [ $stage -le 0 ]; then
+    bash local/run_train_sbnf_transfer.sh
+fi
+
 # extract keywords' instances from xiaoying native speaker data
 if [ $stage -le 10 ]; then
     local/prepare_keywords_instances.sh
@@ -185,7 +226,7 @@ if [ $stage -le 11 ]; then
     echo "prepare STD test set from read_after_me_test set"
     word_score_dict_file=data/info/word_score_read_after_me_all.pkl
     keywords_list=data/info/keywords.list
-    test_scp=data/read_after_me_test/wav.scp
+    test_scp=data/read_after_me_test_remain/wav.scp
     text_tail_500=/mnt/jyhou/workspace/my_code/Prepare_windows_data/xiaoying_native/text_fixed_tail_500
     mkdir -p data/local/data_15_30
     python local/get_search_dataset.py $word_score_dict_file $keywords_list $test_scp $text_tail_500 \
@@ -196,25 +237,118 @@ if [ $stage -le 11 ]; then
     mkdir -p data/local/data_65_80
     python local/get_search_dataset.py $word_score_dict_file $keywords_list $test_scp $text_tail_500 \
             65 80 55 100 2 data/local/data_65_80/utter.id
+    
+    
 fi
 
+if [ $stage -le 12 ]; then
+    for x in data_15_30 data_40_55 data_65_80;
+    do
+        source_dir=/mnt/jyhou/data/XiaoYing_All/
+        target_dir=/mnt/jyhou/data/XiaoYing_STD/$x/
+        echo "python local/copy_file.py data/local/$x/utter.id  $source_dir $target_dir \"wav\""
+        python local/copy_file.py data/local/$x/utter.id  $source_dir $target_dir "wav"
+    done
+    
+    for x in data_15_30 data_40_55 data_65_80;
+    do
+        cat data/local/$x/utter.id || exit 1;
+    done > data/info/search_data.list
+    echo "python local/exclude_list.py data/info/search_data.list data/read_after_me_test/wav.scp data/info/read_after_me_test_exclude_search_data.scp "
+    python local/exclude_list.py data/info/search_data.list data/read_after_me_test_remain/wav.scp data/info/read_after_me_test_exclude_search_data.scp 
+fi
 
 # prepare STD non-native keywords from read_after_me_test set
 # here we exclude the utterances which have been used for STD test
-if [ $stage -le 0 ]; then
-    echo "hou"
+if [ $stage -le 13 ]; then
+    word_score_dict_file=data/info/word_score_read_after_me_all.pkl
+    keywords_list=data/info/keywords.list
+    test_scp=data/info/read_after_me_test_exclude_search_data.scp #exclude search dataset
+    cmt_file=exp/nn_xiaoying_read_after_me_test_ali/cmt
+
+    out_dir=/mnt/jyhou/data/XiaoYing_STD/keywords_60_100/
+    mkdir -p $out_dir
+    echo "python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 5 $out_dir "
+    python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 5 $out_dir 
+
+    out_dir=/mnt/jyhou/data/XiaoYing_STD/keywords_20_60/
+    mkdir -p $out_dir
+    echo "python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 20 60 5 $out_dir "
+    python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 20 60 5 $out_dir 
+
+
+    #word_score_dict_file=data/info/word_score_xiaoying_native.pkl
+    #test_scp=data/xiaoying_native/wav.scp #exclude search dataset
+    #cmt_file=exp/nn_xiaoying_native_ali
+
+    #out_dir=/mnt/jyhou/data/XiaoYing_STD/keywords_native/
+    #mkdir -p $out_dir
+    #echo "python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 5 $out_dir "
+    #python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 5 $out_dir 
+        
 fi
 
 # prepare xiaoying's STD dataset for STD experiments
-if [ $stage -le 0 ]; then
-    echo "hou"
+if [ $stage -le 14 ]; then
+    echo "prepare STD data"
+    bash local/prepare_xiaoying_search_data.sh
+    bash local/prepare_xiaoying_keywords.sh
 fi
 
 
-if [ $stage -le 0 ]; then
-    bash local/run_train_sbnf.sh
+# ==========================================extract stack bottleneck features ========================================
+# extract mfcc feature
+fea_dir=/mnt/jyhou/feats/XiaoYing_STD
+mfcc_dir=mfcc
+if [ $stage -le 15 ]; then
+    for x in data_15_30 data_40_55 data_65_80 keywords_20_60 keywords_60_100 keywords_native;
+    do
+        utils/copy_data_dir.sh  data/$x $mfcc_dir/$x; rm $mfcc_dir/$x/{feats,cmvn}.scp
+        steps/make_mfcc.sh --cmd "$train_cmd" --nj 20 $mfcc_dir/$x $mfcc_dir/$x/log $mfcc_dir/$x/data
+        steps/compute_cmvn_stats.sh $mfcc_dir/$x $mfcc_dir/$x/log $mfcc_dir/$x/data
+    
+        mkdir -p ${fea_dir}/${x}
+        copy-feats-to-htk  --output-dir=${fea_dir}/${x} \
+            --output-ext=mfcc ark:"copy-feats scp:$mfcc_dir/$x/feats.scp ark:-|add-deltas ark:- ark:|"
+    done
+fi
+# extract fbank feature
+fea_dir=/mnt/jyhou/feats/XiaoYing_STD
+fbank_dir=fbank
+if [ $stage -le 16 ]; then
+    for x in data_15_30 data_40_55 data_65_80 keywords_20_60 keywords_60_100 keywords_native;
+    do
+        utils/copy_data_dir.sh  data/$x $fbank_dir/$x; rm $fbank_dir/$x/{feats,cmvn}.scp
+        steps/make_fbank.sh --cmd "$train_cmd" --nj 20 \
+                       $fbank_dir/$x $fbank_dir/$X/log $fbank_dir/$x/data || exit 1;
+        steps/compute_cmvn_stats.sh $fbank_dir/$x $fbank_dir/$x/log $fbank_dir/$x/data || exit 1;
+    done
+    
+fi
+# extract sbnf from SWBD model
+nnet=/exp/train_nodup-nnet5uc-part2/
+if [ $stage -le 17 ]; then
+    for x in data_15_30 data_40_55 data_65_80 keywords_20_60 keywords_60_100 keywords_native;
+    do
+        sbnf="sbnf0"
+        bn_dir=$sbnf/$x
+        mkdir -p $bn_dir
+        steps/nnet/make_bn_feats.sh --cmd "$train_cmd" --nj 20 $bn_dir $fbank_dir/$x $nnet $bn_dir/log $bn_dir/data
+        copy-feats-to-htk --output-dir=${fea_dir}/$x --output-ext=$sbnf  scp:$bn_dir/feats.scp
+    done
 fi
 
+# decode xiaoying STD's search data
+
+gmmdir=/mnt/jyhou/kaldi/egs/swbd/s5c/exp/tri4
+graphdir=$gmmdir/graph_sw1_tg
+nnetdir=/exp/train_nodup-nnet5uc-part2/
 if [ $stage -le 0 ]; then
-    bash local/run_train_sbnf_transfer.sh
+    for x in data_15_30 data_40_55 data_65_80;
+    do
+        data_dir=fbank/data_$x
+        decode_dir=$nnetdir/$x
+        local/decode_xiaoying.sh $data_dir $gmmdir $graphdir $decode_dir
+    done
 fi
+

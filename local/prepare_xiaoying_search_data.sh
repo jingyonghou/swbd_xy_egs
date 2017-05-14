@@ -1,15 +1,17 @@
 export LC_ALL=C
 
 
-for x in data_55_60 data_75_80 data_95_100; 
+for x in data_15_30 data_40_55 data_65_80; 
 do
     data_dir=/mnt/jyhou/data/XiaoYing_STD/$x
-    sed -e "s:\(^L.*\)\b\(L.*.wav$\):\1 $data_dir/\2:" data/local/$x/wav.scp > data/local/$x/wav_new.scp
+    find /mnt/jyhou/data/XiaoYing_STD/$x/ -name *.wav > data/local/$x/wav.list
+    sed -e "s:^$data_dir/::" -e "s:.wav$::" data/local/$x/wav.list > data/local/$x/wav.id
+    python local/prepare_text.py data/info/text.dict data/local/$x/wav.id data/local/$x/text
+    paste data/local/$x/wav.id data/local/$x/wav.list > data/local/$x/wav.scp
     mkdir -p data/$x
-    cat data/local/$x/wav_new.scp |sort > data/$x/wav.scp
-    cut -d" " -f 1 data/local/$x/wav_new.scp > data/local/$x/wav.id
+    cat data/local/$x/wav.scp |sort > data/$x/wav.scp
     paste data/local/$x/wav.id data/local/$x/wav.id |sort > data/$x/spk2utt
     cp data/$x/spk2utt data/$x/utt2spk
-    cat data/text.txt |sort > data/$x/text
+    cat data/local/$x/text |sort > data/$x/text
     utils/fix_data_dir.sh data/$x
 done
