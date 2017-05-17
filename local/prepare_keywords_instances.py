@@ -70,7 +70,8 @@ def write_instance(keywords, ctm_dict, wav_scp_dict,  max_num, keyword_dir):
         extract_num = min(len(instances), max_num)
         extract_instances = random.sample(instances, extract_num)
         for i in range(extract_num):
-            instance_id = keyword + "_" +str(i)
+    
+            instance_id = "-".join(keyword.split()) + "_" +str(i)
             sourcefile = wav_scp_dict[extract_instances[i][0]]
             start_point = time2point(extract_instances[i][1])
             duration = time2point(extract_instances[i][2])

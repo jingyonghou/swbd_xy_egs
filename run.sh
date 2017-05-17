@@ -3,7 +3,7 @@ echo "$0 $@"
 . ./cmd.sh
 [ -f path.sh ] && . ./path.sh
 
-stage=13
+stage=14
 # prepare xiaoying native data
 # here we split the the data into 2 set, test and train1 according to the text of this data
 # last 500 setences are used to extract keywords and first 618 sentence are used for training
@@ -237,11 +237,7 @@ if [ $stage -le 11 ]; then
     mkdir -p data/local/data_65_80
     python local/get_search_dataset.py $word_score_dict_file $keywords_list $test_scp $text_tail_500 \
             65 80 55 100 2 data/local/data_65_80/utter.id
-    
-    
-fi
-
-if [ $stage -le 12 ]; then
+   
     for x in data_15_30 data_40_55 data_65_80;
     do
         source_dir=/mnt/jyhou/data/XiaoYing_All/
@@ -249,6 +245,11 @@ if [ $stage -le 12 ]; then
         echo "python local/copy_file.py data/local/$x/utter.id  $source_dir $target_dir \"wav\""
         python local/copy_file.py data/local/$x/utter.id  $source_dir $target_dir "wav"
     done
+     
+    
+fi
+
+if [ $stage -le 12 ]; then
     
     for x in data_15_30 data_40_55 data_65_80;
     do
@@ -258,6 +259,36 @@ if [ $stage -le 12 ]; then
     python local/exclude_list.py data/info/search_data.list data/read_after_me_test_remain/wav.scp data/info/read_after_me_test_exclude_search_data.scp 
 fi
 
+if [ $stage -le 12 ]; then
+    word_score_dict_file=data/info/word_score_read_after_me_all.pkl
+    keywords_list=data/info/keywords.list
+    test_scp=data/info/read_after_me_test_exclude_search_data.scp
+    text_tail_500=/mnt/jyhou/workspace/my_code/Prepare_windows_data/xiaoying_native/text_fixed_tail_500
+    mkdir -p data/local/data_15_30_candidate
+    python local/get_search_dataset.py $word_score_dict_file $keywords_list $test_scp $text_tail_500 \
+            15 30 10 40 3 data/local/data_15_30_candidate/utter.id
+    mkdir -p data/local/data_40_55_candidate
+    python local/get_search_dataset.py $word_score_dict_file $keywords_list $test_scp $text_tail_500 \
+            40 55 30 65 3 data/local/data_40_55_candidate/utter.id
+    mkdir -p data/local/data_65_80_candidate
+    python local/get_search_dataset.py $word_score_dict_file $keywords_list $test_scp $text_tail_500 \
+            65 80 55 100 3 data/local/data_65_80_candidate/utter.id
+    
+    for x in data_15_30 data_40_55 data_65_80;
+    do
+        source_dir=/mnt/jyhou/data/XiaoYing_All/
+        target_dir=/mnt/jyhou/data/XiaoYing_STD/${x}_candidate/
+        echo "python local/copy_file.py data/local/${x}_candidate/utter.id  $source_dir $target_dir \"wav\""
+        python local/copy_file.py data/local/${x}_candidate/utter.id  $source_dir $target_dir "wav"
+    done
+fi
+
+# after above step we select search dataset from above data_*_* and data_*_*_candidate by hand final search dateset is in data_*_*_final
+if [ $stage -le 14 ]; then
+    echo "prepare STD data"
+    bash local/prepare_xiaoying_search_data.sh
+    
+fi
 # prepare STD non-native keywords from read_after_me_test set
 # here we exclude the utterances which have been used for STD test
 if [ $stage -le 13 ]; then
@@ -268,23 +299,24 @@ if [ $stage -le 13 ]; then
 
     out_dir=/mnt/jyhou/data/XiaoYing_STD/keywords_60_100/
     mkdir -p $out_dir
-    echo "python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 5 $out_dir "
-    python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 5 $out_dir 
+    echo "python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 10 $out_dir "
+    python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 10 $out_dir 
 
     out_dir=/mnt/jyhou/data/XiaoYing_STD/keywords_20_60/
     mkdir -p $out_dir
-    echo "python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 20 60 5 $out_dir "
-    python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 20 60 5 $out_dir 
+    echo "python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 20 60 10 $out_dir "
+    python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 20 60 10 $out_dir 
 
 
-    #word_score_dict_file=data/info/word_score_xiaoying_native.pkl
-    #test_scp=data/xiaoying_native/wav.scp #exclude search dataset
-    #cmt_file=exp/nn_xiaoying_native_ali
+    word_score_dict_file=data/info/word_score_xiaoying_native.pkl
+    keywords_list=data/info/keywords.list
+    test_scp=data/xiaoying_native/wav.scp #exclude search dataset
+    cmt_file=exp/nn_xiaoying_native_ali
 
-    #out_dir=/mnt/jyhou/data/XiaoYing_STD/keywords_native/
-    #mkdir -p $out_dir
-    #echo "python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 5 $out_dir "
-    #python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 5 $out_dir 
+    out_dir=/mnt/jyhou/data/XiaoYing_STD/keywords_native/
+    mkdir -p $out_dir
+    echo "python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 10 $out_dir "
+    python local/get_keyword_instances.py $keywords_list $test_scp $word_score_dict_file $ctm_file 60 100 10 $out_dir 
         
 fi
 
@@ -326,7 +358,7 @@ if [ $stage -le 16 ]; then
     
 fi
 # extract sbnf from SWBD model
-nnet=/exp/train_nodup-nnet5uc-part2/
+nnet=exp/train_nodup-nnet5uc-part2/
 if [ $stage -le 17 ]; then
     for x in data_15_30 data_40_55 data_65_80 keywords_20_60 keywords_60_100 keywords_native;
     do
@@ -342,7 +374,7 @@ fi
 
 gmmdir=/mnt/jyhou/kaldi/egs/swbd/s5c/exp/tri4
 graphdir=$gmmdir/graph_sw1_tg
-nnetdir=/exp/train_nodup-nnet5uc-part2/
+nnetdir=exp/train_nodup-nnet5uc-part2/
 if [ $stage -le 0 ]; then
     for x in data_15_30 data_40_55 data_65_80;
     do

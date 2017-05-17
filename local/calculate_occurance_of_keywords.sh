@@ -1,1 +1,1 @@
-python local/calculate_occurance_of_keywords.py data/info/keywords.list /mnt/jyhou/workspace/my_code/Prepare_windows_data/xiaoying_native/text_fixed_tail_500 occurence_summery.txt
+python local/calculate_occurance_of_keywords.py data/info/keywords.list /mnt/jyhou/workspace/my_code/Prepare_windows_data/xiaoying_native/text_fixed_tail_500 sentence_occurence_summery.txt keyword_occurence_summery.txt

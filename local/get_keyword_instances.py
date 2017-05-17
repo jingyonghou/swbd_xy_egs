@@ -86,7 +86,8 @@ def frame2point(frame_list, sample_rate=SAMPLERATE):
 def write_instance(selected_instance_dict, test_scp_dict, out_dir):
     for keyword in selected_instance_dict:
         for i in range(len(selected_instance_dict[keyword])):
-            instance_file_name = out_dir + keyword + "_" + str(i) + ".wav"
+            keyword_name = "-".join(keyword.split())
+            instance_file_name = out_dir + keyword_name + "_" + str(i) + ".wav"
             wav_id = selected_instance_dict[keyword][i][0]
             frame_range = selected_instance_dict[keyword][i][1:-1]
             point_range = frame2point(frame_range)

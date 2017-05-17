@@ -3,7 +3,7 @@ export LC_ALL=C
 
 for x in data_15_30 data_40_55 data_65_80; 
 do
-    data_dir=/mnt/jyhou/data/XiaoYing_STD/$x
+    data_dir=/mnt/jyhou/data/XiaoYing_STD/${x}_final
     find /mnt/jyhou/data/XiaoYing_STD/$x/ -name *.wav > data/local/$x/wav.list
     sed -e "s:^$data_dir/::" -e "s:.wav$::" data/local/$x/wav.list > data/local/$x/wav.id
     python local/prepare_text.py data/info/text.dict data/local/$x/wav.id data/local/$x/text
