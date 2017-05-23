@@ -20,7 +20,7 @@ train="xiaoying_train_nodup_200"
 
 batch_size=4096
 learn_rate=0.0005
-momentum=0.9
+momentum=0
 scheduler_opts="\"--momentum $momentum\""
 train_tool_opts="--minibatch-size=${batch_size} --randomizer-size=32768 --randomizer-seed=777"
 
@@ -33,7 +33,7 @@ fi
 if [ $stage -le 2 ]; then
   # Train 1st network, overall context +/-5 frames
   # - the topology is 90_1500_1500_80_1500_NSTATES, linear bottleneck,
-  dir=exp/${train}-nnet5uc-part1
+  dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}-nnet5uc-part1
   labels="\"ark:ali-to-post ark:ali-pdf-xiaoying.ark ark:- |\""
   ali="exp/tri4_ali_swbd_train_nodup"
   init_net="exp/train_nodup-nnet5uc-part1/final.nnet"
@@ -50,7 +50,7 @@ fi
 if [ $stage -le 3 ]; then
   # Compose feature_transform for the next stage,
   # - remaining part of the first network is fixed,
-  dir=exp/${train}-nnet5uc-part1
+  dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}-nnet5uc-part1
   feature_transform=$dir/final.feature_transform.part1
   # Create splice transform,
   nnet-initialize <(echo "<Splice> <InputDim> 80 <OutputDim> 1040 <BuildVector> -10 -5:5 10 </BuildVector>") \
@@ -62,7 +62,7 @@ if [ $stage -le 3 ]; then
   # Train 2nd network, overall context +/-15 frames,
   # - the topology will be 1040_1500_1500_30_1500_NSTATES, linear bottleneck,
   # - cmvn_opts get imported inside 'train.sh',
-  dir=exp/${train}-nnet5uc-part2
+  dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}-nnet5uc-part2
   labels="\"ark:ali-to-post ark:ali-pdf-xiaoying.ark ark:- |\""
   ali="exp/tri4_ali_swbd_train_nodup"
   init_net="exp/train_nodup-nnet5uc-part2/final.nnet"

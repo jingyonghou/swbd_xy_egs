@@ -15,7 +15,9 @@ if __name__=="__main__":
     keyword_occurance_fid = open(sys.argv[4], "w")
     sentence_summery_fid = open(sys.argv[5], "w")
 
+    sentence_num = 0
     for line in open(sys.argv[3]).readlines():
+        sentence_num += 1
         fields = line.strip().split()
         wav_id = fields[0]
         text_id = "_".join(wav_id.split("_")[0:2])
@@ -26,8 +28,12 @@ if __name__=="__main__":
             keyword_dict[keyword] += 1
             sentence_summery_fid.writelines("\'%s\' "%keyword)
         sentence_summery_fid.writelines("\t%s\n"%text)
+
+    occurance_num = 0
     for word in keywords_list:
         keyword_occurance_fid.writelines("%s\t%d\n"%(word, keyword_dict[word]))
-
+        occurance_num += keyword_dict[word]
+        
+    keyword_occurance_fid.writelines("\nsummmery: %d occurances in %d sentences\n"%(occurance_num, sentence_num))
     keyword_occurance_fid.close()
     sentence_summery_fid.close()
