@@ -12,7 +12,7 @@ if [ $# -gt 1 ]; then
 fi
 
 export LC_ALL=C;
-xiaoying_native="/mnt/jyhou/data/lessonNativeRecords"
+xiaoying_native="/home/disk1/jyhou/data/lessonNativeRecords"
 if [ ! -z $1 ]; then
     xiaoying_native=$1
 fi
