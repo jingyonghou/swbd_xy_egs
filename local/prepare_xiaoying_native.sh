@@ -12,7 +12,7 @@ if [ $# -gt 1 ]; then
 fi
 
 export LC_ALL=C;
-xiaoying_native="/home/disk1/jyhou/data/lessonNativeRecords"
+xiaoying_native="/home/disk1/jyhou/data/lessonNativeRecords/"
 if [ ! -z $1 ]; then
     xiaoying_native=$1
 fi
@@ -33,12 +33,12 @@ fi
 mkdir -p $data_src_dir
 mkdir -p $data_dir
 
-find /mnt/jyhou/data/lessonNativeRecords/ -name *.mp3 > $data_src_dir/mp3.list
-find /mnt/jyhou/data/lessonNativeRecords/ -name *.mp3 |sed -e "s:.mp3$::" > $data_src_dir/utter.list
+find $xiaoying_native -name *.mp3 > $data_src_dir/mp3.list
+find $xiaoying_native -name *.mp3 |sed -e "s:.mp3$::" > $data_src_dir/utter.list
 #convert mp3 to wav and also downsampling them
 
-find /mnt/jyhou/data/lessonNativeRecords/ -name *.wav > $data_src_dir/wav.list
-cat $data_src_dir/wav.list |sed -e "s:^/mnt/jyhou/data/lessonNativeRecords/::" -e "s:\(L.*/.*\)/.*.wav$:\1:" -e "s:\/:_:" > $data_src_dir/wav.id
+find $xiaoying_native -name *.wav > $data_src_dir/wav.list
+cat $data_src_dir/wav.list |sed -e "s:^$xiaoying_native::" -e "s:\(L.*/.*\)/.*.wav$:\1:" -e "s:\/:_:" > $data_src_dir/wav.id
 paste $data_src_dir/wav.id $data_src_dir/wav.list |sort > $data_src_dir/wav.scp
 
 rm $data_src_dir/text.raw
@@ -82,6 +82,7 @@ cat $data_src_dir/transcripts2.txt \
 # case insensitive
 ./local/swbd1_map_words.pl -f 2- $data_src_dir/transcripts3.txt  > $data_src_dir/transcripts4.txt
 
+#cat $data_src_dir/transcripts4.txt | tr 'A-Z' 'a-z' > $data_src_dir/text_fixed.txt
 # format acronyms in text
 python ./local/map_acronyms_transcripts.py -i $data_src_dir/transcripts4.txt \
     -o $data_src_dir/transcripts5.txt -M ./local/acronyms.map

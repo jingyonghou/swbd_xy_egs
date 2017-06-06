@@ -11,7 +11,7 @@ def build_sentence_score_dict(word_score_dict_file):
         n = len(word_score_dict[sentence_id])
         score = 0;
         for i in range(n):
-            score += word_score_dict[sentence_id][i][3]
+            score += float(word_score_dict[sentence_id][i][3])
         score /= n
         if sentence_score_dict.has_key(sentence_id):
             log.Error("repeated sentence id:%s"%sentence_id)
@@ -24,6 +24,9 @@ def select_utterance_by_score(source_wav_scp, low_score, high_score):
         fields = line.strip().split()
         sentence_id = fields[0]
         path = fields[1]
+        if not sentence_score_dict.has_key(sentence_id):
+            log.Warn("no score file for this sentence id: %s"%(sentence_id))
+            continue
         if sentence_score_dict[sentence_id] > low_score and sentence_score_dict[sentence_id] <= high_score:
             target_wav_scp_list.append(line)
     return target_wav_scp_list

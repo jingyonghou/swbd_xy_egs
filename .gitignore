@@ -12,6 +12,7 @@
 !*.pl
 !*.txt
 !*.patch
+!*.map
 # Some generic scripts
 !/local
 
@@ -20,6 +21,8 @@
 !*.conf
 !*.config
 
+# 
+!/data/info
 # some
 # our code: python and bash
 

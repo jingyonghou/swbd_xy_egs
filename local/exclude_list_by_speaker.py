@@ -55,7 +55,10 @@ if __name__=="__main__":
     for x in open(sys.argv[3]).readlines():
         wav_id = x.strip().split()[0]
         audio_id = wav_id.split("_")[2]
+        if not speaker_dict.has_key(audio_id):
+            continue
         speaker_id = speaker_dict[audio_id]
+        
         if not speaker_id in exclude_speaker_set:
             fid.writelines(x)
     fid.close()

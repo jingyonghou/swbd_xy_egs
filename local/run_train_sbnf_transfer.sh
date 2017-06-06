@@ -13,8 +13,8 @@ echo "$0 $@"
 # - This structure produces superior performance w.r.t. single bottleneck network
 #
 # Train SBN
-stage=2
-gmmdir=/mnt/jyhou/kaldi/egs/swbd/s5c/exp/tri4
+stage=1
+gmmdir=/home/disk1/jyhou/kaldi/egs/swbd/s5c/exp/tri4
 lang=data/lang
 train="xiaoying_train_nodup_200"
 

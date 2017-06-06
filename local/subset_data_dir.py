@@ -3,7 +3,7 @@ import sys
 def build_text_id_list(text_id_list_file):
     text_id_list = []
     for x in open(text_id_list_file).readlines():
-        text_id_list.append(x.strip())
+        text_id_list.append(x.strip().split()[0])
     return text_id_list
 
 if __name__=="__main__":

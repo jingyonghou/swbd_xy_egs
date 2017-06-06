@@ -1,6 +1,7 @@
 import sys
 import random
 
+
 def suffle_list(list_file):
     suffled_list=[]
     for x in open(list_file).readlines():
@@ -9,9 +10,10 @@ def suffle_list(list_file):
     return suffled_list
 
 if __name__=="__main__":
-    if(len(sys.argv) < 3):
-        print("USAGE: python " + sys.argv[0] + " source_list target_list")
+    if(len(sys.argv) < 4):
+        print("USAGE: python " + sys.argv[0] + " source_list target_list seed")
         exit(1)
+    random.seed(int(sys.argv[3]))
     suffled_list = suffle_list(sys.argv[1])
     fid = open(sys.argv[2], "w")
     for x in suffled_list:
