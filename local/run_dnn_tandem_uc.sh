@@ -7,17 +7,18 @@
 # 'Universal Context' topology as invented by Frantisek Grezl,
 # the network is on top of FBANK+f0 features.
 
-. cmd.sh
-. path.sh
+. ./cmd.sh
+. ./path.sh
 
 # Config:
-stage=3 # resume training with --stage=N
+stage=5 # resume training with --stage=N
 has_fisher=true
+export LC_ALL=C;
 # End of config.
 . utils/parse_options.sh || exit 1;
 #
 
-set -euxo pipefail 
+#set -euxo pipefail 
 
 train_src=data/train_nodup
 train=fbank/train_nodup
@@ -29,6 +30,29 @@ gmmdir=exp/tri4
 
 lang=data/lang
 lang_test=data/lang_sw1_tg
+
+if [ $stage -le 1 ]; then
+  [ -e $dev ] && echo "Existing '$dev', better quit than overwrite!!!" && exit 1
+  # prepare the FBANK+f0 features,
+  # eval2000,
+  utils/copy_data_dir.sh  $dev_src $dev; rm $dev/{feats,cmvn}.scp $dev/{spk2utt,utt2spk}
+  # head we reprepare the spk2utt file
+  cut -d" " -f1 $dev/segments > $dev/wav.id
+  paste $dev/wav.id $dev/wav.id > $dev/spk2utt
+  cp $dev/spk2utt $dev/utt2spk
+  steps/make_fbank.sh --cmd "$train_cmd" --nj 20 $dev $dev/log $dev/data
+  steps/compute_cmvn_stats.sh $dev $dev/log $dev/data
+
+  # training set,
+  utils/copy_data_dir.sh $train_src $train; rm $train/{feats,cmvn}.scp train/{spk2utt,utt2spk}
+  # head we reprepare the spk2utt file
+  cut -d" " -f1 $train/segments > $train/wav.id
+  paste $train/wav.id $train/wav.id > $train/spk2utt
+  cp $train/spk2utt $train/utt2spk
+  steps/make_fbank.sh --cmd "$train_cmd" --nj 20 $train $train/log $train/data
+  steps/compute_cmvn_stats.sh $train $train/log $train/data
+fi
+
 
 if [ $stage -le 2 ]; then
   # split the data : 90% train, 10% cross-validation (held-out set),
@@ -45,7 +69,7 @@ fi
 # - This structure produces superior performance w.r.t. single bottleneck network
 #
 batch_size=4096
-learn_rate=0.0005
+learn_rate=0.00006
 momentum=0.9
 scheduler_opts="\"--momentum $momentum\""
 train_tool_opts="--minibatch-size=${batch_size} --randomizer-size=32768 --randomizer-seed=777"
@@ -70,8 +94,7 @@ if [ $stage -le 4 ]; then
   dir=exp/swbd_${batch_size}_${learn_rate}_${momentum}_${tag}-nnet5uc-part1
   feature_transform=$dir/final.feature_transform.part1
   # Create splice transform,
-  nnet-initialize <(echo "<Splice> <InputDim> 80 <OutputDim> 1040 <BuildVector> -10 -5:5 -10</BuildVector>") \
-    $dir/splice_for_bottleneck.nnet 
+  nnet-initialize <(echo "<Splice> <InputDim> 80 <OutputDim> 1040 <BuildVector> -10 -5:5 10 </BuildVector>") $dir/splice_for_bottleneck.nnet 
   # Concatanate the input-transform, 1stage network, splicing,
   nnet-concat $dir/final.feature_transform "nnet-copy --remove-last-components=4 $dir/final.nnet - |" \
     $dir/splice_for_bottleneck.nnet $feature_transform

@@ -4,62 +4,9 @@ echo "$0 $@"
 [ -f path.sh ] && . ./path.sh
 
 stage=17
+# prepare swbd data
 if [ $stage -le 5 ]; then
-    local/swbd1_data_download.sh /home/disk1/jyhou/data/swbd1
-    # local/swbd1_data_download.sh /mnt/matylda2/data/SWITCHBOARD_1R2 # BUT,
-
-    # prepare SWBD dictionary first since we want to find acronyms according to pronunciations
-    # before mapping lexicon and transcripts
-    local/swbd1_prepare_dict.sh
-
-    # Prepare Switchboard data. This command can also take a second optional argument
-    # which specifies the directory to Switchboard documentations. Specifically, if
-    # this argument is given, the script will look for the conv.tab file and correct
-    # speaker IDs to the actual speaker personal identification numbers released in
-    # the documentations. The documentations can be found here:
-    # https://catalog.ldc.upenn.edu/docs/LDC97S62/
-    # Note: if you are using this link, make sure you rename conv_tab.csv to conv.tab
-    # after downloading.
-    # Usage: local/swbd1_data_prep.sh /path/to/SWBD [/path/to/SWBD_docs]
-    local/swbd1_data_prep.sh /home/disk1/jyhou/data/swbd1
-
-
-    # Data preparation and formatting for eval2000 (note: the "text" file
-    local/eval2000_data_prep.sh /home/disk1/jyhou/data/Hub5Eval00 /home/disk1/jyhou/data/Hub5Eval00
-
-    # Now make FBANK features.
-    for x in train eval2000; do
-      data_src=data/$x
-      data_fbank=fbank/$x
-      utils/copy_data_dir.sh $data_src $data_fbank; #rm $data_fbank/{feats,cmvn}.scp
-      steps/make_fbank.sh --cmd "$train_cmd" --nj 20 $data_fbank $data_fbank/log $data_fbank/data
-      steps/compute_cmvn_stats.sh $data_fbank $data_fbank/log $data_fbank/data
-      utils/fix_data_dir.sh $data_fbank
-    done
-
-        # Use the first 4k sentences as dev set.  Note: when we trained the LM, we used
-    # the 1st 10k sentences as dev set, so the 1st 4k won't have been used in the
-    # LM training data.   However, they will be in the lexicon, plus speakers
-    # may overlap, so it's still not quite equivalent to a test set.
-    utils/subset_data_dir.sh --first fbank/train 4000 fbank/train_dev # 5hr 6min
-    n=$[`cat data/train/segments | wc -l` - 4000]
-    utils/subset_data_dir.sh --last fbank/train $n fbank/train_nodev
-
-    # Now-- there are 260k utterances (313hr 23min), and we want to start the
-    # monophone training on relatively short utterances (easier to align), but not
-    # only the shortest ones (mostly uh-huh).  So take the 100k shortest ones, and
-    # then take 30k random utterances from those (about 12hr)
-    utils/subset_data_dir.sh --shortest fbank/train_nodev 100000 fbank/train_100kshort
-    utils/subset_data_dir.sh fbank/train_100kshort 30000 fbank/train_30kshort
-
-    # Take the first 100k utterances (just under half the data); we'll use
-    # this for later stages of training.
-    utils/subset_data_dir.sh --first fbank/train_nodev 100000 fbank/train_100k
-    utils/data/remove_dup_utts.sh 200 fbank/train_100k fbank/train_100k_nodup  # 110hr
-
-    # Finally, the full training set:
-    utils/data/remove_dup_utts.sh 300 fbank/train_nodev fbank/train_nodup  # 286hr
-  
+    ln -s /home/disk1/jyhou/kaldi/egs/swbd/s5c/data data  
 fi
 # prepare xiaoying native data
 # here we split the the data into 2 set, test and train1 according to the text of this data
@@ -102,55 +49,55 @@ fi
 
 #split the xiaoying's data by speaker 
 if [ $stage -le 4 ]; then
-    python local/get_read_afterme_speaker.py data/info/read_after_me_json.list data/read_after_me_train1/wav.scp data/info/read_afterme_train_speaker.list
-    python local/get_read_afterme_speaker.py data/info/read_after_me_json.list data/read_after_me_test/wav.scp data/info/read_afterme_test_speaker.list
-    python local/get_pronunciation_challenge_speaker.py data/pronunciation_challenge/wav.scp data/info/pronunciation_challenge_train_speaker.list
+    python local/get_read_afterme_speaker.py info/read_after_me_json.list xy_data/read_after_me_train1/wav.scp info/read_afterme_train_speaker.list
+    python local/get_read_afterme_speaker.py info/read_after_me_json.list xy_data/read_after_me_test/wav.scp info/read_afterme_test_speaker.list
+    python local/get_pronunciation_challenge_speaker.py xy_data/pronunciation_challenge/wav.scp info/pronunciation_challenge_train_speaker.list
 
-    cat data/info/read_afterme_train_speaker.list data/info/read_afterme_test_speaker.list |sort|uniq >  data/info/read_afterme_all_speaker.list
+    cat info/read_afterme_train_speaker.list info/read_afterme_test_speaker.list |sort|uniq >  data/info/read_afterme_all_speaker.list
     #python local/shuffle_list.py data/info/read_afterme_all_speaker.list data/info/read_afterme_all_speaker_shuffled.list
     #head -n 4000 data/info/read_afterme_all_speaker_shuffled.list > data/info/speaker_train1.list
     #tail -n 4198 data/info/read_afterme_all_speaker_shuffled.list > data/info/speaker_test.list
     
-    python local/exclude_list.py data/info/search_data_speaker.list data/info/read_afterme_all_speaker.list data/info/read_afterme_remain_speaker.list
+    python local/exclude_list.py info/search_data_speaker.list info/read_afterme_all_speaker.list info/read_afterme_remain_speaker.list
 
-    python local/shuffle_list.py data/info/read_afterme_remain_speaker.list data/info/read_afterme_remain_speaker_shuffled.list 777
+    python local/shuffle_list.py info/read_afterme_remain_speaker.list info/read_afterme_remain_speaker_shuffled.list 777
 
-    total_num=`cat data/info/read_afterme_remain_speaker_shuffled.list |wc -l`
+    total_num=`cat info/read_afterme_remain_speaker_shuffled.list |wc -l`
     train_num=5000
     extract_num=$((total_num-train_num))
-    head -n $train_num data/info/read_afterme_remain_speaker_shuffled.list > data/info/speaker_train1.list
-    tail -n $extract_num data/info/read_afterme_remain_speaker_shuffled.list > data/info/speaker_test1.list
+    head -n $train_num info/read_afterme_remain_speaker_shuffled.list > data/info/speaker_train1.list
+    tail -n $extract_num info/read_afterme_remain_speaker_shuffled.list > data/info/speaker_test1.list
 
-    cat data/info/speaker_test1.list data/info/search_data_speaker.list > data/info/speaker_test.list
+    cat info/speaker_test1.list data/info/search_data_speaker.list > data/info/speaker_test.list
 
-    cat data/info/speaker_train1.list data/info/pronunciation_challenge_train_speaker.list > data/info/speaker_train_all.list 
+    cat info/speaker_train1.list info/pronunciation_challenge_train_speaker.list > info/speaker_train_all.list 
     # this still contains little part of test speaker because some pronunciation challenge data may contains the test speaker
-    python local/exclude_list.py data/info/speaker_test.list data/info/speaker_train_all.list data/info/speaker_train.list
+    python local/exclude_list.py info/speaker_test.list info/speaker_train_all.list info/speaker_train.list
 
-    python local/exclude_list_by_speaker.py data/info/read_after_me_json.list data/info/speaker_train.list data/read_after_me_test/wav.scp data/info/read_afterme_test_remain.scp
+    python local/exclude_list_by_speaker.py info/read_after_me_json.list info/speaker_train.list xy_data/read_after_me_test/wav.scp info/read_afterme_test_remain.scp
 
-    python local/exclude_list_by_speaker.py data/info/read_after_me_json.list data/info/speaker_test.list data/read_after_me_train1/wav.scp data/info/read_afterme_train1_remain.scp
+    python local/exclude_list_by_speaker.py info/read_after_me_json.list info/speaker_test.list xy_data/read_after_me_train1/wav.scp info/read_afterme_train1_remain.scp
     
-    python local/exclude_list_by_speaker_pronunciation.py data/info/speaker_test.list data/pronunciation_challenge/wav.scp data/info/pronunciation_challenge_remain.scp
+    python local/exclude_list_by_speaker_pronunciation.py info/speaker_test.list xy_data/pronunciation_challenge/wav.scp info/pronunciation_challenge_remain.scp
     
-    utils/subset_data_dir.sh --utt-list data/info/read_afterme_test_remain.scp data/read_after_me_test data/read_after_me_test_remain
-    utils/subset_data_dir.sh --utt-list data/info/read_afterme_train1_remain.scp data/read_after_me_train1 data/read_after_me_train1_remain
-    utils/subset_data_dir.sh --utt-list data/info/pronunciation_challenge_remain.scp data/pronunciation_challenge data/pronunciation_challenge_remain
+    utils/subset_data_dir.sh --utt-list info/read_afterme_test_remain.scp xy_data/read_after_me_test xy_data/read_after_me_test_remain
+    utils/subset_data_dir.sh --utt-list info/read_afterme_train1_remain.scp xy_data/read_after_me_train1 xy_data/read_after_me_train1_remain
+    utils/subset_data_dir.sh --utt-list info/pronunciation_challenge_remain.scp xy_data/pronunciation_challenge xy_data/pronunciation_challenge_remain
     
 fi
 
 if [ $stage -le 8 ]; then
     for x in read_after_me_train1_remain pronunciation_challenge_remain;
     do
-        source_data=data/${x}
+        source_data=xy_data/${x}
         if [ $x = "read_after_me_train1_remain" ]; then
-            word_score_pkl=data/info/read_after_me_score.pkl
-            target_data=data/xiaoying_train1
+            word_score_pkl=info/read_after_me_score.pkl
+            target_data=xy_data/xiaoying_train1
         fi
 
         if [ $x = "pronunciation_challenge_remain" ]; then
-            word_score_pkl=data/info/pronunciation_challenge_score.pkl
-            target_data=data/xiaoying_train2
+            word_score_pkl=info/pronunciation_challenge_score.pkl
+            target_data=xy_data/xiaoying_train2
         fi 
         mkdir -p $target_data
         echo "python local/select_utterances_by_score.py $word_score_pkl $source_data/wav.scp 10 100 $target_data/wav_selected.scp"
@@ -163,7 +110,7 @@ fi
 if [ $stage -le 6 ]; then
     for x in xiaoying_train1 xiaoying_train2;
     do
-        data_src=data/$x
+        data_src=xy_data/$x
         data_fbank=fbank/$x
         utils/copy_data_dir.sh  $data_src $data_fbank; rm $data_fbank/{feats,cmvn}.scp
         steps/make_fbank.sh --cmd "$train_cmd" --nj 20 $data_fbank $data_fbank/log $data_fbank/data
@@ -173,9 +120,9 @@ fi
 
 # do aliment using nn n
 if [ $stage -le 7 ]; then
-    gmmdir=/mnt/jyhou/kaldi/egs/swbd/s5c/exp/tri4
-    nndir=exp/swbd_xy_200_train-nnet5uc-part2
-    lang=/mnt/jyhou/kaldi/egs/swbd/s5c/data/lang
+    gmmdir=exp/tri4
+    nndir=exp/swbd_4096_0.00006_0.9_original-nnet5uc-part2
+    lang=data/lang
 
     for x in xiaoying_train1 xiaoying_train2;
     do
