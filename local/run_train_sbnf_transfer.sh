@@ -14,20 +14,20 @@ echo "$0 $@"
 #
 # Train SBN
 stage=1
-gmmdir=/home/disk1/jyhou/kaldi/egs/swbd/s5c/exp/tri4
+gmmdir=exp/tri4
 lang=data/lang
 train="xiaoying_train_nodup_200"
 
 batch_size=4096
 learn_rate=0.0005
-momentum=0
+momentum=0.9
 scheduler_opts="\"--momentum $momentum\""
 train_tool_opts="--minibatch-size=${batch_size} --randomizer-size=32768 --randomizer-seed=777"
 
 if [ $stage -le 1 ]; then
-    alidir="exp/{nn_xiaoying_read_after_me_train1_ali_gpu,nn_xiaoying_pronunciation_challenge_ali}"
+    alidir="exp/{nn_xiaoying_train1_ali,nn_xiaoying_train2_ali}"
     lables_pdf="ali-pdf-xiaoying.ark"
-    ali-to-pdf exp/tri4_ali_swbd_train_nodup/final.mdl "ark:gunzip -c $alidir/ali.*.gz |" ark:$lables_pdf
+    ali-to-pdf exp/tri4_ali_nodup/final.mdl "ark:gunzip -c $alidir/ali.*.gz |" ark:$lables_pdf
 fi
 
 if [ $stage -le 2 ]; then
@@ -36,7 +36,7 @@ if [ $stage -le 2 ]; then
   dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}-nnet5uc-part1
   labels="\"ark:ali-to-post ark:ali-pdf-xiaoying.ark ark:- |\""
   ali="exp/tri4_ali_swbd_train_nodup"
-  init_net="exp/train_nodup-nnet5uc-part1/final.nnet"
+  init_net="exp/swbd_4096_0.00006_0.9_original-nnet5uc-part1/final.nnet"
   $cuda_cmd $dir/log/train_nnet.log \
     steps/nnet/train.sh --nnet-init $init_net \
       --scheduler-opts $scheduler_opts \
@@ -65,7 +65,7 @@ if [ $stage -le 3 ]; then
   dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}-nnet5uc-part2
   labels="\"ark:ali-to-post ark:ali-pdf-xiaoying.ark ark:- |\""
   ali="exp/tri4_ali_swbd_train_nodup"
-  init_net="exp/train_nodup-nnet5uc-part2/final.nnet"
+  init_net="exp/swbd_4096_0.00006_0.9_original-nnet5uc-part2/final.nnet"
   $cuda_cmd $dir/log/train_nnet.log \
     steps/nnet/train.sh --nnet-init $init_net \
       --scheduler-opts $scheduler_opts \
