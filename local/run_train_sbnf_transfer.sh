@@ -13,10 +13,12 @@ echo "$0 $@"
 # - This structure produces superior performance w.r.t. single bottleneck network
 #
 # Train SBN
-stage=1
+stage=3
 gmmdir=exp/tri4
 lang=data/lang
 train="xiaoying_train_nodup_200"
+tag="20_htk_mfcc"
+feature_dir="mfcc_htk"
 
 batch_size=4096
 learn_rate=0.0005
@@ -33,10 +35,10 @@ fi
 if [ $stage -le 2 ]; then
   # Train 1st network, overall context +/-5 frames
   # - the topology is 90_1500_1500_80_1500_NSTATES, linear bottleneck,
-  dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}-nnet5uc-part1
+  dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}${tag}-nnet5uc-part1
   labels="\"ark:ali-to-post ark:ali-pdf-xiaoying.ark ark:- |\""
   ali="exp/tri4_ali_swbd_train_nodup"
-  init_net="exp/swbd_4096_0.00006_0.9_original-nnet5uc-part1/final.nnet"
+  init_net="exp/swbd_4096_0.00006_0.9_original_htk_mfcc-nnet5uc-part1/final.nnet"
   $cuda_cmd $dir/log/train_nnet.log \
     steps/nnet/train.sh --nnet-init $init_net \
       --scheduler-opts $scheduler_opts \
@@ -44,13 +46,13 @@ if [ $stage -le 2 ]; then
       --cmvn-opts "--norm-means=true --norm-vars=false" \
       --feat-type traps --splice 5 --traps-dct-basis 6 --learn-rate $learn_rate \
       --labels $labels \
-      fbank/${train}_tr90 fbank/${train}_cv10 $lang $ali $ali $dir
+      ${feature_dir}/${train}_tr90 ${feature_dir}/${train}_cv10 $lang $ali $ali $dir
 fi
 
 if [ $stage -le 3 ]; then
   # Compose feature_transform for the next stage,
   # - remaining part of the first network is fixed,
-  dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}-nnet5uc-part1
+  dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}${tag}-nnet5uc-part1
   feature_transform=$dir/final.feature_transform.part1
   # Create splice transform,
   nnet-initialize <(echo "<Splice> <InputDim> 80 <OutputDim> 1040 <BuildVector> -10 -5:5 10 </BuildVector>") \
@@ -62,16 +64,16 @@ if [ $stage -le 3 ]; then
   # Train 2nd network, overall context +/-15 frames,
   # - the topology will be 1040_1500_1500_30_1500_NSTATES, linear bottleneck,
   # - cmvn_opts get imported inside 'train.sh',
-  dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}-nnet5uc-part2
+  dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}${tag}-nnet5uc-part2
   labels="\"ark:ali-to-post ark:ali-pdf-xiaoying.ark ark:- |\""
   ali="exp/tri4_ali_swbd_train_nodup"
-  init_net="exp/swbd_4096_0.00006_0.9_original-nnet5uc-part2/final.nnet"
+  init_net="exp/swbd_4096_0.00006_0.9_original_htk_mfcc-nnet5uc-part2/final.nnet"
   $cuda_cmd $dir/log/train_nnet.log \
     steps/nnet/train.sh --nnet-init $init_net \
       --scheduler-opts $scheduler_opts \
       --copy-feats false --train-tool-opts "$train_tool_opts" \
       --feature-transform $feature_transform --learn-rate $learn_rate \
       --labels $labels \
-    fbank/${train}_tr90 fbank/${train}_cv10 $lang $ali $ali $dir
+    ${feature_dir}/${train}_tr90 ${feature_dir}/${train}_cv10 $lang $ali $ali $dir
 fi
 

@@ -1,6 +1,6 @@
 . ./cmd.sh
 [ -f path.sh ] && . ./path.sh
-stage=19
+stage=18
 # extract mfcc feature
 fea_dir=/mnt/jyhou/feats/XiaoYing_STD
 mfcc_dir=mfcc
@@ -18,10 +18,11 @@ if [ $stage -le 17 ]; then
 fi
 
 # extract fbank feature
-fea_dir=/mnt/jyhou/feats/XiaoYing_STD
+fea_dir=/home/disk1/jyhou/feats/XiaoYing_STD
+mkdir -p $fea_dir
 fbank_dir=fbank
 if [ $stage -le 18 ]; then
-    for x in data_15_30 data_40_55 data_65_80 keywords_20_60 keywords_60_100 keywords_native;
+    for x in data_15_30 data_40_55 data_65_80 keywords_60_100 keywords_native;
     do
         utils/copy_data_dir.sh  data/$x $fbank_dir/$x; rm $fbank_dir/$x/{feats,cmvn}.scp
         steps/make_fbank.sh --cmd "$train_cmd" --nj 20 \
@@ -36,13 +37,14 @@ fi
 #nnet=exp/xiaoying_train_nodup_200_4096_0.0005_0-nnet5uc-part2/
 #nnet=exp/swbd_xy_train_nodup_100-nnet5uc-part2/
 #nnet=exp/swbd_xy_train_nodup_200-nnet5uc-part2/
-nnet=exp/xiaoying_train_nodup_100-nnet5uc-part2/
-
+#nnet=exp/xiaoying_train_nodup_100-nnet5uc-part2/
+nnet=exp/xiaoying_train_nodup_200_4096_0.0005_0.9-nnet5uc-part2/
 if [ $stage -le 19 ]; then
-    for x in data_15_30 data_40_55 data_65_80 keywords_20_60 keywords_60_100 keywords_native;
+    for x in data_15_30 data_40_55 data_65_80 keywords_60_100 keywords_native;
     do
-        sbnf="sbnf2"
+        sbnf="sbnf1"
         bn_dir=$sbnf/$x
+        mkdir -p ${fea_dir}/$x
         mkdir -p $bn_dir
         steps/nnet/make_bn_feats.sh --cmd "$train_cmd" --use-gpu yes --nj 4 $bn_dir $fbank_dir/$x $nnet $bn_dir/log $bn_dir/data
         copy-feats-to-htk --output-dir=${fea_dir}/$x --output-ext=$sbnf  scp:$bn_dir/feats.scp
@@ -50,9 +52,9 @@ if [ $stage -le 19 ]; then
 fi
 
 # decode xiaoying STD's search data
-gmmdir=/mnt/jyhou/kaldi/egs/swbd/s5c/exp/tri4
+gmmdir=exp/tri4
 graphdir=$gmmdir/graph_sw1_tg
-nnetdir=exp/train_nodup-nnet5uc-part2/
+nnetdir=exp/xiaoying_train_nodup_200_4096_0.0005_0.9-nnet5uc-part2/
 #nnet=exp/xiaoying_train_nodup_100_4096_0.0005_0-nnet5uc-part2/
 #nnet=exp/xiaoying_train_nodup_200_4096_0.0005_0-nnet5uc-part2/
 #nnet=exp/swbd_xy_train_nodup_100-nnet5uc-part2/

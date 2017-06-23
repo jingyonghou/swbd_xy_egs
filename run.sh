@@ -3,7 +3,7 @@ echo "$0 $@"
 . ./cmd.sh
 [ -f path.sh ] && . ./path.sh
 
-stage=14
+stage=100
 # prepare xiaoying native data
 # here we split the the data into 2 set, test and train1 according to the text of this data
 # last 500 setences are used to extract keywords and first 618 sentence are used for training

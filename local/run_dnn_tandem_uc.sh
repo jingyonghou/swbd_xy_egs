@@ -11,7 +11,7 @@
 . ./path.sh
 
 # Config:
-stage=5 # resume training with --stage=N
+stage=3 # resume training with --stage=N
 has_fisher=true
 export LC_ALL=C;
 # End of config.
@@ -21,10 +21,10 @@ export LC_ALL=C;
 #set -euxo pipefail 
 
 train_src=data/train_nodup
-train=fbank/train_nodup
+train=mfcc_htk/train_nodup
 
 dev_src=data/eval2000
-dev=fbank/eval2000
+dev=mfcc_htk/eval2000
 
 gmmdir=exp/tri4
 
@@ -73,7 +73,7 @@ learn_rate=0.00006
 momentum=0.9
 scheduler_opts="\"--momentum $momentum\""
 train_tool_opts="--minibatch-size=${batch_size} --randomizer-size=32768 --randomizer-seed=777"
-tag="original"
+tag="original_htk_mfcc"
 if [ $stage -le 3 ]; then
   # Train 1st network, overall context +/-5 frames
   # - the topology is 90_1500_1500_80_1500_NSTATES, linear bottleneck,
