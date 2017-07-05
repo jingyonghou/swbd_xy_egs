@@ -35,7 +35,10 @@ def build_occurance_dict(word_score_dict, keywords_list, test_scp_list):
         occurance_dict[keyword] = []
 
     for wav_id in test_scp_list:
-        word_score_list = word_score_dict[wav_id]
+        if wav_id in word_score_dict.keys():
+            word_score_list = word_score_dict[wav_id]
+        else:
+            continue
         # check unigram word
         for i in range(len(word_score_list)):
             word = word_score_list[i][2].lower()
@@ -48,7 +51,7 @@ def build_occurance_dict(word_score_dict, keywords_list, test_scp_list):
         for i in range(len(word_score_list)-1):
             word1 = word_score_list[i][2].lower()
             word2 = word_score_list[i+1][2].lower()
-            phrase = word1 + " " + word2
+            phrase = word1 + "-" + word2
             if not phrase in keywords_list:
                 continue
             start_frame1 = float(word_score_list[i][0])
