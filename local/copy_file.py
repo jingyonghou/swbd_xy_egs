@@ -32,10 +32,7 @@ if __name__=="__main__":
     data_type = sys.argv[4]
     #convert spx file to amr (amr file is empty and spx is not)
     for x in file_list:
-        text_id = "_".join(x.strip().split("_")[0:2])
-        file_id = x.strip().split("_")[-1]
-
-        source_data = source_data_dir + "/" + text_id + "/" + file_id + "." + data_type
+        source_data = source_data_dir + "/" + x + "." + data_type
         target_data = target_data_dir + "/" + x + "." + data_type
         
         copy_file(source_data, target_data)
