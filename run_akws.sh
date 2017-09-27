@@ -51,7 +51,7 @@ fi
 feature_dir=$model_dir
 decode_tool=iterating-viterbi-decoding-mapped
 if [ $stage -le 2 ]; then
-    for x in data_65_80; do
+    for x in data_15_30 data_40_55 data_65_80; do
         result_dir=results/${x}_keywords_60_100_tri
         mkdir -p $result_dir
         local/akws_i.sh --scale_opts \
@@ -69,7 +69,7 @@ syllable_num_file="info/keyword_syllable_num.txt"
 keyword_list_file="info/keywords.list"
 
 if [ $stage -le 3 ]; then
-    for x in data_65_80;
+    for x in data_15_30 data_40_55 data_65_80;
     do
 
        result_dir=results/${x}_keywords_60_100_tri/

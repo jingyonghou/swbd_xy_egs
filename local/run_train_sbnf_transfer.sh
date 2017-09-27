@@ -13,12 +13,12 @@ echo "$0 $@"
 # - This structure produces superior performance w.r.t. single bottleneck network
 #
 # Train SBN
-stage=3
+stage=2
 gmmdir=exp/tri4
 lang=data/lang
 train="xiaoying_train_nodup_200"
-tag="20_htk_mfcc"
-feature_dir="mfcc_htk"
+tag="fbank_no_mvn"
+feature_dir="fbank"
 
 batch_size=4096
 learn_rate=0.0005
@@ -38,12 +38,12 @@ if [ $stage -le 2 ]; then
   dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}${tag}-nnet5uc-part1
   labels="\"ark:ali-to-post ark:ali-pdf-xiaoying.ark ark:- |\""
   ali="exp/tri4_ali_swbd_train_nodup"
-  init_net="exp/swbd_4096_0.00006_0.9_original_htk_mfcc-nnet5uc-part1/final.nnet"
+  init_net="exp/swbd_4096_0.00006_0.9_original-nnet5uc-part1/final.nnet"
   $cuda_cmd $dir/log/train_nnet.log \
     steps/nnet/train.sh --nnet-init $init_net \
       --scheduler-opts $scheduler_opts \
       --copy-feats false --train-tool-opts "$train_tool_opts" \
-      --cmvn-opts "--norm-means=true --norm-vars=false" \
+      --cmvn-opts "" \
       --feat-type traps --splice 5 --traps-dct-basis 6 --learn-rate $learn_rate \
       --labels $labels \
       ${feature_dir}/${train}_tr90 ${feature_dir}/${train}_cv10 $lang $ali $ali $dir
@@ -67,7 +67,7 @@ if [ $stage -le 3 ]; then
   dir=exp/${train}_${batch_size}_${learn_rate}_${momentum}${tag}-nnet5uc-part2
   labels="\"ark:ali-to-post ark:ali-pdf-xiaoying.ark ark:- |\""
   ali="exp/tri4_ali_swbd_train_nodup"
-  init_net="exp/swbd_4096_0.00006_0.9_original_htk_mfcc-nnet5uc-part2/final.nnet"
+  init_net="exp/swbd_4096_0.00006_0.9_original-nnet5uc-part2/final.nnet"
   $cuda_cmd $dir/log/train_nnet.log \
     steps/nnet/train.sh --nnet-init $init_net \
       --scheduler-opts $scheduler_opts \

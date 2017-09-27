@@ -45,4 +45,13 @@ def build_scp_dict(scp_file):
         scp_dict[f_id] = f_value
     return scp_dict
 
+def build_scp_dict_reverse(scp_file):
+    scp_dict = {}
+    for line in open(scp_file).readlines():
+        fields = line.strip().split()
+        f_id = fields[-1]
+        f_value = " ".join(fields[0:-1])
+        scp_dict[f_id] = f_value
+    return scp_dict
+
     
