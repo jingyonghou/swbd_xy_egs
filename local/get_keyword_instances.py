@@ -5,7 +5,7 @@ import numpy as np
 import wavedata
 import random
 
-DELAY=320
+DELAY=200
 SAMPLERATE=8000
 MAX_INTERVAL=1600
 
@@ -48,20 +48,20 @@ def build_occurance_dict(word_score_dict, keywords_list, test_scp_list):
             end_frame = float(word_score_list[i][1])
             score = float(word_score_list[i][3])
             occurance_dict[word].append([wav_id, start_frame, end_frame, score])
-        for i in range(len(word_score_list)-1):
-            word1 = word_score_list[i][2].lower()
-            word2 = word_score_list[i+1][2].lower()
-            phrase = word1 + "-" + word2
-            if not phrase in keywords_list:
-                continue
-            start_frame1 = float(word_score_list[i][0])
-            end_frame1 = float(word_score_list[i][1])
-            score1 = float(word_score_list[i][3])
-            start_frame2 = float(word_score_list[i+1][0])
-            end_frame2 = float(word_score_list[i+1][1])
-            score2 = float(word_score_list[i+1][3])
-            score = 0.5 * (score1+score2)
-            occurance_dict[phrase].append([wav_id, start_frame1, end_frame1, start_frame2, end_frame2, score])
+#        for i in range(len(word_score_list)-1):
+#            word1 = word_score_list[i][2].lower()
+#            word2 = word_score_list[i+1][2].lower()
+#            phrase = word1 + "-" + word2
+#            if not phrase in keywords_list:
+#                continue
+#            start_frame1 = float(word_score_list[i][0])
+#            end_frame1 = float(word_score_list[i][1])
+#            score1 = float(word_score_list[i][3])
+#            start_frame2 = float(word_score_list[i+1][0])
+#            end_frame2 = float(word_score_list[i+1][1])
+#            score2 = float(word_score_list[i+1][3])
+#            score = 0.5 * (score1+score2)
+#            occurance_dict[phrase].append([wav_id, start_frame1, end_frame1, start_frame2, end_frame2, score])
     return occurance_dict
 
 def build_ctm_occorrance_dict(ctm_file, word_score_dict, keywords_list, test_scp_list):
@@ -78,6 +78,7 @@ def select_instance(occurance_dict, keywords_score_low, keywords_score_high, sel
             selected_instance_dict[keyword] = random.sample(instance_candidates, len(instance_candidates))
         else:
             selected_instance_dict[keyword] = random.sample(instance_candidates, select_num)
+        print(keyword + ": " + str(len(selected_instance_dict[keyword])))
     return selected_instance_dict
 
 def frame2point(frame_list, sample_rate=SAMPLERATE):
@@ -86,11 +87,11 @@ def frame2point(frame_list, sample_rate=SAMPLERATE):
         point_list.append(int(frame * SAMPLERATE / 100))        
     return point_list
 
-def write_instance(selected_instance_dict, test_scp_dict, out_dir):
+def write_instance(selected_instance_dict, test_scp_dict, start_id, out_dir):
     for keyword in selected_instance_dict:
         for i in range(len(selected_instance_dict[keyword])):
             keyword_name = "-".join(keyword.split())
-            instance_file_name = out_dir + keyword_name + "_" + str(i) + ".wav"
+            instance_file_name = out_dir + keyword_name + "_" + str(start_id+i).zfill(3) + ".wav"
             wav_id = selected_instance_dict[keyword][i][0]
             frame_range = selected_instance_dict[keyword][i][1:-1]
             point_range = frame2point(frame_range)
@@ -112,8 +113,8 @@ def write_instance(selected_instance_dict, test_scp_dict, out_dir):
             wavedata.writewave(instance_file_name, target_data, 1, 2, 8000)
 
 if __name__=="__main__":
-    if len(sys.argv) < 8:
-        print("UDAGE: python "+ sys.argv[0]+ " keyowrds.list test_scp word_score_dict.pkl cmt_file keywords_score_low keywords_score_high num out_dir")
+    if len(sys.argv) < 9:
+        print("UDAGE: python "+ sys.argv[0]+ " keyowrds.list test_scp word_score_dict.pkl cmt_file keywords_score_low keywords_score_high num start_id out_dir")
         exit(1)
     
     keywords_list = build_keywords_list(sys.argv[1])
@@ -129,7 +130,8 @@ if __name__=="__main__":
     keywords_score_low=float(sys.argv[4])
     keywords_score_high=float(sys.argv[5])
     select_num = int(sys.argv[6])
-    out_dir = sys.argv[7]
+    start_id = int(sys.argv[7])
+    out_dir = sys.argv[8]
 
     selected_instance_dict = select_instance(occurance_dict, keywords_score_low, keywords_score_high, select_num)
-    write_instance(selected_instance_dict, test_scp_dict, out_dir)
+    write_instance(selected_instance_dict, test_scp_dict, start_id, out_dir)

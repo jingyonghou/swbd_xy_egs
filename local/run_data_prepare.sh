@@ -53,7 +53,7 @@ if [ $stage -le 4 ]; then
     python local/get_read_afterme_speaker.py info/read_after_me_json.list xy_data/read_after_me_test/wav.scp info/read_afterme_test_speaker.list
     python local/get_pronunciation_challenge_speaker.py xy_data/pronunciation_challenge/wav.scp info/pronunciation_challenge_train_speaker.list
 
-    cat info/read_afterme_train_speaker.list info/read_afterme_test_speaker.list |sort|uniq >  data/info/read_afterme_all_speaker.list
+    cat info/read_afterme_train_speaker.list info/read_afterme_test_speaker.list |sort|uniq >  info/read_afterme_all_speaker.list
     #python local/shuffle_list.py data/info/read_afterme_all_speaker.list data/info/read_afterme_all_speaker_shuffled.list
     #head -n 4000 data/info/read_afterme_all_speaker_shuffled.list > data/info/speaker_train1.list
     #tail -n 4198 data/info/read_afterme_all_speaker_shuffled.list > data/info/speaker_test.list
@@ -68,7 +68,7 @@ if [ $stage -le 4 ]; then
     head -n $train_num info/read_afterme_remain_speaker_shuffled.list > data/info/speaker_train1.list
     tail -n $extract_num info/read_afterme_remain_speaker_shuffled.list > data/info/speaker_test1.list
 
-    cat info/speaker_test1.list data/info/search_data_speaker.list > data/info/speaker_test.list
+    cat info/speaker_test1.list info/search_data_speaker.list > info/speaker_test.list
 
     cat info/speaker_train1.list info/pronunciation_challenge_train_speaker.list > info/speaker_train_all.list 
     # this still contains little part of test speaker because some pronunciation challenge data may contains the test speaker
