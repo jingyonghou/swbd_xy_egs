@@ -73,7 +73,7 @@ learn_rate=0.00006
 momentum=0.9
 scheduler_opts="\"--momentum $momentum\""
 train_tool_opts="--minibatch-size=${batch_size} --randomizer-size=32768 --randomizer-seed=777"
-tag="original_htk_mfcc"
+tag="original_htk_mfcc_no_mvn"
 if [ $stage -le 3 ]; then
   # Train 1st network, overall context +/-5 frames
   # - the topology is 90_1500_1500_80_1500_NSTATES, linear bottleneck,
@@ -83,7 +83,7 @@ if [ $stage -le 3 ]; then
     steps/nnet/train.sh --hid-layers 2 --hid-dim 1500 --bn-dim 80 \
       --scheduler-opts $scheduler_opts \
       --copy-feats false --train-tool-opts "$train_tool_opts" \
-      --cmvn-opts "--norm-means=true --norm-vars=false" \
+      --cmvn-opts "--norm-means=false --norm-vars=false" \
       --feat-type traps --splice 5 --traps-dct-basis 6 --learn-rate $learn_rate \
       ${train}_tr90 ${train}_cv10 $lang $ali $ali $dir
 fi
@@ -94,7 +94,7 @@ if [ $stage -le 4 ]; then
   dir=exp/swbd_${batch_size}_${learn_rate}_${momentum}_${tag}-nnet5uc-part1
   feature_transform=$dir/final.feature_transform.part1
   # Create splice transform,
-  nnet-initialize <(echo "<Splice> <InputDim> 80 <OutputDim> 1040 <BuildVector> -10 -5:5 10 </BuildVector>") $dir/splice_for_bottleneck.nnet 
+  nnet-initialize <(echo "<Splice> <InputDim> 80 <OutputDim> 880 <BuildVector>  -5:5 </BuildVector>") $dir/splice_for_bottleneck.nnet 
   # Concatanate the input-transform, 1stage network, splicing,
   nnet-concat $dir/final.feature_transform "nnet-copy --remove-last-components=4 $dir/final.nnet - |" \
     $dir/splice_for_bottleneck.nnet $feature_transform
@@ -120,98 +120,4 @@ if [ $stage -le 5 ]; then
   steps/nnet/decode.sh --nj 20 --cmd "$decode_cmd" --config conf/decode_dnn.config --acwt 0.08333 \
     $gmmdir/graph_sw1_tg $dev $dir/decode_eval2000_sw1_tg
 fi
-#
-## Store the BN-features,
-#nnet=exp/nnet5uc-part2
-#train_bn=data-$(basename $nnet)/train_nodup
-#dev_bn=data-$(basename $nnet)/eval2000
-#if [ $stage -le 6 ]; then
-#  # eval2000,
-#  steps/nnet/make_bn_feats.sh --cmd "$train_cmd" --nj 20 $dev_bn $dev $nnet $dev_bn/log $dev_bn/data
-#  # trainig,
-#  steps/nnet/make_bn_feats.sh --cmd "$train_cmd --max-jobs-run 50" --nj 200 $train_bn $train $nnet $train_bn/log $train_bn/data
-#  # For further GMM training, we have to produce cmvn statistics even if not used!!!
-#  steps/compute_cmvn_stats.sh $dev_bn $dev_bn/log $dev_bn/data
-#  steps/compute_cmvn_stats.sh $train_bn $train_bn/log $train_bn/data
-#fi
-#
-## Use single-pass retraining to build new GMM system on top of bottleneck features,
-#if [ $stage -le 7 ]; then
-#  dir=exp/tri6uc
-#  ali_src=${gmmdir}_ali_nodup
-#  graph=$dir/graph_${lang_test#*lang_}
-#  # Train,
-#  # GMM on bn features, no cmvn, no lda-mllt,
-#  steps/train_deltas.sh --cmd "$train_cmd" --delta-opts "--delta-order=0" \
-#    --cmvn-opts "--norm-means=false --norm-vars=false" \
-#    --beam 20 --retry-beam 80 \
-#    11500 200000 $train_bn $lang $ali_src $dir 
-#  # Decode,
-#  utils/mkgraph.sh $lang_test $dir $graph
-#  steps/decode.sh --nj 30 --cmd "$decode_cmd" --acwt 0.05 --beam 15.0 --lattice-beam 8.0 \
-#    $graph $dev_bn $dir/decode_$(basename $dev_bn)_$(basename $graph)
-#  # Align,
-#  steps/align_fmllr.sh --nj 50 --cmd "$train_cmd" \
-#    --beam 20 --retry-beam 80 \
-#    $train_bn $lang $dir ${dir}_ali
-#fi
-#
-## Train SAT-adapted GMM on bottleneck features,
-#if [ $stage -le 8 ]; then
-#  dir=exp/tri7uc-sat
-#  ali=exp/tri6uc_ali
-#  graph=$dir/graph_${lang_test#*lang_}
-#  # Train,
-#  # fmllr-gmm system on bottleneck features, 
-#  # - no cmvn, put fmllr to the features directly (no lda),
-#  # - note1 : we don't need cmvn, similar effect has diagonal of fmllr transform,
-#  # - note2 : lda+mllt was causing a small hit <0.5%,
-#  steps/train_sat.sh --cmd "$train_cmd" --beam 20 --retry-beam 80 \
-#    11500 200000 $train_bn $lang $ali $dir
-#  # Decode,
-#  utils/mkgraph.sh $lang_test $dir $graph
-#  steps/decode_fmllr.sh --nj 30 --cmd "$decode_cmd" --acwt 0.05 --beam 15.0 --lattice-beam 8.0 \
-#    $graph $dev_bn $dir/decode_$(basename $dev_bn)_$(basename $graph)
-#fi
-#
-## Prepare alignments and lattices for bMMI training,
-#if [ $stage -le 9 ]; then
-#  dir=exp/tri7uc-sat
-#  # Align,
-#  steps/align_fmllr.sh --nj 50 --cmd "$train_cmd" --beam 20 --retry-beam 80 \
-#    $train_bn $lang $dir ${dir}_ali_nodup
-#  # Make denlats,
-#  steps/make_denlats.sh --nj 50 --cmd "$decode_cmd" --acwt 0.05 \
-#    --config conf/decode.config --transform-dir ${dir}_ali_nodup \
-#    $train_bn $lang $dir ${dir}_denlats_nodup 
-#fi
-#
-## 4 iterations of bMMI seems to work well overall. The number of iterations is
-## used as an explicit argument even though train_mmi.sh will use 4 iterations by
-## default.
-#num_mmi_iters=4
-#if [ $stage -le 10 ]; then
-#  dir=exp/tri7uc-sat_mmi_b0.1
-#  graph=exp/tri7uc-sat/graph_${lang_test#*lang_}
-#  steps/train_mmi.sh --cmd "$decode_cmd" \
-#    --boost 0.1 --num-iters $num_mmi_iters \
-#    $train_bn $lang exp/tri7uc-sat_{ali,denlats}_nodup ${dir}
-#  for iter in 1 2 3 4; do
-#    steps/decode.sh --nj 30 --cmd "$decode_cmd" --acwt 0.05 \
-#      --config conf/decode.config --iter $iter \
-#      --transform-dir exp/tri7uc-sat/decode_$(basename $dev_bn)_$(basename $graph) \
-#      $graph $dev_bn $dir/decode_$(basename $dev_bn)_$(basename $graph)_it${iter}
-#  done
-#fi
-#
-#if [ $stage -le 11 ]; then
-#  if $has_fisher; then
-#    # Rescore with the 4gram swbd+fisher language model.
-#    dir=exp/tri7uc-sat_mmi_b0.1
-#    steps/lmrescore_const_arpa.sh --cmd "$decode_cmd" \
-#      data/lang_sw1_{tg,fsh_fg} data/eval2000 \
-#      $dir/decode_eval2000_graph_sw1_{tg,fsh_fg}_it4
-#  fi
-#fi
-#
 echo Done.

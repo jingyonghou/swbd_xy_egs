@@ -4,7 +4,7 @@
 . ./path.sh
 
 export LC_ALL=C
-state=6
+state=3
 lang_test="data/lang_sw1_tg"
 keywords_dir="data/lat_keywords"
 oov=0
@@ -29,20 +29,24 @@ fi
 # get the lattice for the test data
 gmm_dir=exp/tri4
 nnet_dir=exp/xiaoying_train_nodup_200_4096_0.0005_0.9-nnet5uc-part2
+nnet_dir=exp/xiaoying_train_nodup_200_4096_0.0005_0.9fbank_no_mvn-nnet5uc-part2
 #nnet_dir=exp/swbd_4096_0.00006_0.9_original-nnet5uc-part2
-graph_dir=$gmm_dir/graph_sw1_tg
+graph_dir=$gmm_dir/graph_sw1_tg #$gmm_dir/graph_fakerG
 nj=20
 use_gpu=no
-if [ $state -le 2 ]; then
+tag="" #"_noG"
+beam=20.0
+lattice_beam=15.0
+
+if [ $stage -le 20 ]; then
     for x in data_15_30 data_40_55 data_65_80;
     do
         data_dir=fbank/$x
-        decode_dir=$nnet_dir/decode_$x
-        steps/nnet/decode.sh --stage 2 --scoring-opts \
-            "--min-lmwt 4 --max-lmwt 24" --nj $nj \
-            --use-gpu $use_gpu $graph_dir $data_dir $decode_dir
+        decode_dir=$nnetdir/${tag}${beam}_${lattice_beam}_${x}
+        local/decode_xiaoying.sh --beam ${beam} --lattice-beam ${lattice_beam} $data_dir $gmmdir $graphdir $decode_dir
     done
 fi
+
 
 # indexing
 if [ $state -le 3 ]; then
@@ -50,7 +54,7 @@ if [ $state -le 3 ]; then
     for x in data_15_30 data_40_55 data_65_80;
     do
         test_dir=fbank/$x
-        decode_dir=$nnet_dir/decode_$x
+        decode_dir=$nnet_dir/${tag}${beam}_${lattice_beam}_$x
 
         cat $test_dir/feats.scp | awk '{print $1}' | sort | uniq | \
             perl -e '
@@ -72,7 +76,7 @@ fi
 if [ $state -le 4 ]; then
     for x in data_15_30 data_40_55 data_65_80;
     do
-        decode_dir=$nnet_dir/decode_$x
+        decode_dir=$nnet_dir/${tag}${beam}_${lattice_beam}_$x
         time steps/search_index.sh --cmd "$decode_cmd" \
             $keywords_dir \
             ${decode_dir}/kws
@@ -85,7 +89,7 @@ keyword_list_file="info/keywords.list"
 if [ $state -le 5 ]; then
     for x in data_15_30 data_40_55 data_65_80;
     do
-        decode_dir=$nnet_dir/decode_$x
+        decode_dir=$nnet_dir/${tag}${beam}_${lattice_beam}_$x
         utter_id_file=$feat_dir/$x/utter_id
         result_dir=results/${x}_lattice
         rm -r $result_dir

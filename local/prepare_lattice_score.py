@@ -1,6 +1,6 @@
 import sys
 import base
-
+import numpy as np
 def build_result_dict(result_file_name):
     result_dict={}
     for line in open(result_file_name).readlines():
@@ -9,7 +9,7 @@ def build_result_dict(result_file_name):
         utter_id = int(fields[1])
         start_frame = fields[2]
         end_frame = fields[3]
-        score = float(fields[4])
+        score = 1-np.exp(-float(fields[4]))
         if not result_dict.has_key(keyword_id):
             result_dict[keyword_id] = {}
         if not result_dict[keyword_id].has_key(utter_id):
@@ -35,8 +35,8 @@ if __name__=="__main__":
                 if result_dict[keyword].has_key(i):
                     fid.writelines("%f\n"%result_dict[keyword][i])
                 else:
-                    fid.writelines("%f\n"%999999)
+                    fid.writelines("%f\n"%1.1)
         else:
             for i in range(1,len(utter_id_dict)+1):
-                fid.writelines("%f\n"%999999)
+                fid.writelines("%f\n"%1.1)
         fid.close()

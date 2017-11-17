@@ -52,7 +52,7 @@ if [ $stage -le 3 ]; then
   dir=exp/${train}-nnet5uc-part1
   feature_transform=$dir/final.feature_transform.part1
   # Create splice transform,
-  nnet-initialize <(echo "<Splice> <InputDim> 80 <OutputDim> 1040 <BuildVector> -10 -5:5 10 </BuildVector>") \
+  nnet-initialize <(echo "<Splice> <InputDim> 80 <OutputDim> 1040 <BuildVector>  -5:5 </BuildVector>") \
     $dir/splice_for_bottleneck.nnet
   # Concatanate the input-transform, 1stage network, splicing,
   nnet-concat $dir/final.feature_transform "nnet-copy --remove-last-components=4 $dir/final.nnet - |" \

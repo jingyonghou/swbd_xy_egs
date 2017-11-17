@@ -10,7 +10,8 @@ export LC_ALL=C
 config_file=conf/hcopy.config
 
 if [ $stage -le 1 ]; then
-    for x in data_15_30  data_40_55  data_65_80  keywords_60_100  keywords_native;
+    #for x in data_15_30  data_40_55  data_65_80  keywords_60_100_50  keywords_native;
+    for x in keywords_60_100_50;
     do
         data_src=fbank/$x
         data_target=mfcc_htk/$x

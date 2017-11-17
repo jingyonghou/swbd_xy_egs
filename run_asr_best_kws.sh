@@ -44,7 +44,7 @@ fi
 # here we prepare the result file according to the best path
 syllable_num_file="info/keyword_syllable_num.txt"
 keyword_list_file="info/keywords.list"
-asr_dir="/home/disk1/jyhou/my_code/XY_Text_STD/data_swbd"
+asr_dir="/home/disk1/jyhou/my_code/XY_Text_STD/data_swbd_xiaoying"
 if [ $state -le 3 ]; then
 
     for x in data_15_30 data_40_55 data_65_80;

@@ -1,6 +1,7 @@
 export LC_ALL=C
 
-for x in keywords_20_60 keywords_60_100 keywords_native;
+for x in keywords_60_100_50
+#keywords_60_80_50_selected keywords_80_100_50_selected # keywords_20_60 keywords_60_100 keywords_native;
 do
     data_dir=/home/disk1/jyhou/data/XiaoYing_STD/$x
     mkdir -p data/local/$x/

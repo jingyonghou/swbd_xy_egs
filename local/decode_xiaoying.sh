@@ -3,6 +3,8 @@
 nj=20
 config="conf/decode_dnn.config"
 acwt=0.08333
+beam=25.0
+lattice_beam=15.0
 
 echo "$0 $@"
 . ./cmd.sh
@@ -22,4 +24,4 @@ graphdir=$3
 nnetdir=$4
 
 steps/nnet/decode.sh --nj $nj --cmd "$decode_cmd" --config $config --acwt $acwt \
-    $graphdir $datadir $nnetdir
+   --beam $beam --lattice-beam $lattice_beam $graphdir $datadir $nnetdir

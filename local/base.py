@@ -29,6 +29,15 @@ def remove_root_dir(file_list, root_dir):
         new_file_list.append(x_new)
     return new_file_list
 
+def copy_file(source_data, target_data):
+    path = os.path.dirname(target_data)
+    mkdir(path)
+    is_source_exists = os.path.exists(source_data)
+    if not is_source_exists:
+        print("source file is not exist: %s"%source_data)
+    else:
+        shutil.copyfile(source_data, target_data)
+
 #list related		
 def build_list(list_file):
     list_ = []
